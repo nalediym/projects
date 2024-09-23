@@ -19,7 +19,7 @@
 (LOOP)
    @address
    A=M
-   M=-1
+   M=-1 // set pixels to black
    @address
    D=M
    @32
