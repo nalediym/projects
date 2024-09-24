@@ -27,7 +27,6 @@ class Parser:
         """
         self.input_file : os.PathLike = input_file
         self.current_instruction : str = None
-        self.current_line_number : int = 0
         self.instructions : list[str] = []
         self.current_instruction_index : int = 0 # Index of the current instruction in the list of self.instructions
 
@@ -55,6 +54,7 @@ class Parser:
         Should be called only if hasMoreLines() is true.
         Initially there is no current command.
         """
+
         # Read the next command
         self.current_instruction = self.instructions[self.current_instruction_index]
         self.current_instruction_index += 1
