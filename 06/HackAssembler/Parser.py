@@ -1,13 +1,14 @@
 import os
+import re
 
 A_INSTRUCTION = "A_INSTRUCTION" # e.g. @100 
 C_INSTRUCTION = "C_INSTRUCTION" # e.g. D=D+A
 L_INSTRUCTION = "L_INSTRUCTION" # e.g. (LOOP)
 
 VALID_COMMAND_TYPES = [A_INSTRUCTION, C_INSTRUCTION, L_INSTRUCTION]
-VALID_DEST_MNEMONICS = ["M", "D", "MD", "A", "AM", "AD", "AMD"]
-VALID_COMP_MNEMONICS = ["0", "1", "-1", "D", "A", "!D", "!A", "-D", "-A", "D+1", "A+1", "D-1", "A-1", "D+A", "D-A", "A-D", "D&A", "D|A", "M", "!M", "-M", "M+1", "M-1", "D+M", "D-M", "M-D", "D&M", "D|M"]
-VALID_JUMP_MNEMONICS = ["JGT", "JEQ", "JGE", "JLT", "JNE", "JLE", "JMP"]
+# VALID_DEST_FIELDS = ["M", "D", "MD", "A", "AM", "AD", "AMD"]
+# VALID_COMP_FIELDS = ["0", "1", "-1", "D", "A", "!D", "!A", "-D", "-A", "D+1", "A+1", "D-1", "A-1", "D+A", "D-A", "A-D", "D&A", "D|A", "M", "!M", "-M", "M+1", "M-1", "D+M", "D-M", "M-D", "D&M", "D|M"]
+# VALID_JUMP_FIELDS = ["JGT", "JEQ", "JGE", "JLT", "JNE", "JLE", "JMP"]
 
 class Parser:
     """Encapsulates access to the input code. Reads an assembly language command, parses it, and provides
@@ -20,10 +21,14 @@ class Parser:
 
         Args:
             input_file (str): The path to the input .asm file.
+        Attributes:
+            input_file (os.PathLike): The path to the input .asm file.
+            current_instruction (str): The current instruction being parsed. eg: "@100" or "D=D+A" or "(LOOP)"
         """
         self.input_file : os.PathLike = input_file
-        self.current_instruction : str= None
+        self.current_instruction : str = None
         # Initialize other necessary attributes
+
 
     def hasMoreLines(self) -> bool:
         """
@@ -54,9 +59,16 @@ class Parser:
             str: The type of the current command (A_INSTRUCTION, C_INSTRUCTION, or L_INSTRUCTION).
         """
         # 1. Check if the current command is an A_INSTRUCTION
+        if self.current_instruction.startswith("@"): 
+            return A_INSTRUCTION
         # 2. Check if the current command is an L_INSTRUCTION
+        elif self.current_instruction.startswith("(") and self.current_instruction.endswith(")"):
+            return L_INSTRUCTION
         # 3. Check if the current command is a C_INSTRUCTION   
-        pass
+        elif re.match(r"^[AMD]*=[01!-]*[AMD01!-]*;J[A-Z]*$", self.current_instruction):
+            return C_INSTRUCTION
+        else:  
+            raise ValueError("Invalid instruction")
 
     def symbol(self):
         """
@@ -68,10 +80,14 @@ class Parser:
         """
         # 1. Check if the current command is an A_INSTRUCTION 
             # Return decimal Xxx of the current command   
+        if self.instructionType() == A_INSTRUCTION:
+            pass
         # 2. Check if the current command is an L_INSTRUCTION
             # Return the symbolof the current command
-
-        pass
+        elif self.instructionType() == L_INSTRUCTION:
+            pass    
+        else:
+            raise ValueError(f"Invalid instruction type: {self.instructionType()}. Must be A_INSTRUCTION or L_INSTRUCTION") 
 
     def dest(self):
         """

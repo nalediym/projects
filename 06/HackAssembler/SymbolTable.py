@@ -7,6 +7,7 @@ class SymbolTable:
         Creates and initializes a SymbolTable
         Creates a new empty symbol table
         """
+        total_registers = 16 # TODO: replace 16 with the total number of registers 
         self.symbol_table = {
             "SP": 0,
             "LCL": 1,
@@ -17,7 +18,7 @@ class SymbolTable:
             "R1": 1,
             "R2": 2,
             "R3": 3,
-            **{f"R{i}": i for i in range(16)}, # TODO: replace 16 with the total number of registers 
+            **{f"R{i}": i for i in range(total_registers)}, 
         }
 
     def addEntry(self, symbol: str, address: int) -> None:
