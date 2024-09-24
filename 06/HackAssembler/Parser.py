@@ -27,7 +27,17 @@ class Parser:
         """
         self.input_file : os.PathLike = input_file
         self.current_instruction : str = None
-        # Initialize other necessary attributes
+        self.current_line_number : int = 0
+        self.instructions : list[str] = []
+        self.current_instruction_index : int = 0 # Index of the current instruction in the list of self.instructions
+
+        # Open the input file and read all the lines
+        if not os.path.exists(self.input_file):
+            raise FileNotFoundError(f"File {self.input_file} does not exist")
+        with open(self.input_file, "r") as file:
+            self.instructions = file.readlines()
+
+        # TODO: use __enter__ and __exit__ to open and close the file and read the lines 
 
 
     def hasMoreLines(self) -> bool:
@@ -37,16 +47,17 @@ class Parser:
         Returns:
             bool: True if there are more lines, False otherwise.
         """
-        pass
+        return self.current_instruction_index < len(self.instructions)
 
     def advance(self):
         """
         Reads the next command from the input and makes it the current command.
-        Should be called only if has_more_commands() is true.
+        Should be called only if hasMoreLines() is true.
         Initially there is no current command.
         """
         # Read the next command
-        pass
+        self.current_instruction = self.instructions[self.current_instruction_index]
+        self.current_instruction_index += 1
 
     def instructionType(self):
         """
@@ -89,6 +100,15 @@ class Parser:
         else:
             raise ValueError(f"Invalid instruction type: {self.instructionType()}. Must be A_INSTRUCTION or L_INSTRUCTION") 
 
+    def _contains_dest_field(self):
+        """
+        Checks if the current instruction contains a dest field.
+
+        Returns:
+            bool: True if the current instruction contains a dest field, False otherwise.
+        """
+        return "=" in self.current_instruction
+        
     def dest(self):
         """
         Returns the dest mnemonic in the current C-INSTRUCTION (8 possibilities).
@@ -99,8 +119,15 @@ class Parser:
         """
         # Return the dest mnemonic in the current C-INSTRUCTION
         # 1. Check if the current command is a C_INSTRUCTION
-        # 2. Return the dest mnemonic in the current C-INSTRUCTION
-        pass
+        if self.instructionType() == C_INSTRUCTION:
+            # 2. Return the dest mnemonic in the current C-INSTRUCTION
+            if self._contains_dest_field():
+                return self.current_instruction.split("=")[0].strip()
+            else:
+                return "null"
+        else:
+            raise ValueError(f"Invalid instruction type: {self.instructionType()}. Must be C_INSTRUCTION")
+
 
     def comp(self):
         """
@@ -111,8 +138,30 @@ class Parser:
             str: The comp mnemonic in the current C-INSTRUCTION.
         """
         # Return the comp mnemonic in the current C-INSTRUCTION
-        pass
+        # 1. Check if the current command is a C_INSTRUCTION
+        if self.instructionType() == C_INSTRUCTION:
+            # 2. Return the comp mnemonic in the current C-INSTRUCTION
+            if self._contains_dest_field() and self._contains_jump_field():
+                dest, comp, jump = re.split('=|;', self.current_instruction)
+                return comp.strip()
+            elif self._contains_dest_field():
+                return self.current_instruction.split("=")[1].split(";")[0].strip()
+            elif self._contains_jump_field():
+                return self.current_instruction.split(";")[0].strip()
+            else:
+                raise ValueError(f"Invalid instruction: {self.current_instruction}. Must contain either dest or jump field.")
+        else:
+            raise ValueError(f"Invalid instruction type: {self.instructionType()}. Must be C_INSTRUCTION")
 
+    def _contains_jump_field(self):
+        """
+        Checks if the current instruction contains a jump field.
+
+        Returns:
+            bool: True if the current instruction contains a jump field, False otherwise.
+        """
+        return ";" in self.current_instruction
+        
     def jump(self):
         """
         Returns the jump mnemonic in the current C-INSTRUCTION (8 possibilities).
@@ -122,5 +171,13 @@ class Parser:
             str: The jump mnemonic in the current C-INSTRUCTION.
         """
         # Return the jump mnemonic in the current C-INSTRUCTION
-        pass
+        # 1. Check if the current command is a C_INSTRUCTION
+        if self.instructionType() == C_INSTRUCTION:
+            # 2. Return the jump mnemonic in the current C-INSTRUCTION
+            if self._contains_jump_field():
+                return self.current_instruction.split(";")[1].strip()
+            else:
+                return "null"
+        else:
+            raise ValueError(f"Invalid instruction type: {self.instructionType()}. Must be C_INSTRUCTION")
     
