@@ -15,7 +15,7 @@ class Parser:
     convenient access to the command's components (fields and symbols). In addition, removes all white space and comments.
     """
 
-    def __init__(self, input_file):
+    def __init__(self, input_file, manual_run=True):
         """
         Opens the input file and gets ready to parse it.
 
@@ -29,6 +29,8 @@ class Parser:
         self.current_instruction : str = None
         self.instructions : list[str] = []
         self.current_instruction_index : int = 0 # Index of the current instruction in the list of self.instructions
+        self.manual_run : bool = manual_run
+
 
         # Open the input file and read all the lines
         if not os.path.exists(self.input_file):
@@ -48,9 +50,11 @@ class Parser:
                 # Remove inline comments
                 # if '//' in line:
                 #     line = line.split('//')[0].strip()
-                
 
-        # TODO: use __enter__ and __exit__ to open and close the file and read the lines 
+        # if self.manual_run:
+        #     self.instructions = ["AM=M-1"]
+
+
 
 
     def hasMoreLines(self) -> bool:

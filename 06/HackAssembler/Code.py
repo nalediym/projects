@@ -70,48 +70,34 @@ class Code:
             "1": "111111",
             "-1": "111010",
             "D": "001100",
-            "A": "110000",
-            "M": "110000", 
+            "A": "110000", "M": "110000", 
             "!D": "001101",
-            "!A": "011001",
-            "!M": "011001",
+            "!A": "110001", "!M": "110001",
             "-D": "001111",
-            "-A": "011011",
-            "-M": "011011",
-            "D+1": "001111",
-            "A+1": "011011",
-            "M+1": "011011",
+            "-A": "110001", "-M": "110001",
+            "D+1": "011111",
+            "A+1": "110111", "M+1": "110111",
             "D-1": "001110",
-            "A-1": "011001",
-            "M-1": "011001",
-            "D+A": "000010",
-            "D+M": "000010",
-            "D-A": "010011",
-            "D-M": "010011",
-            "A-D": "000111",
-            "M-D": "000111",   
-            "D&A": "000000",
-            "D&M": "000000",
-            "D|A": "010101",
-            "D|M": "010101"
+            "A-1": "110010", "M-1": "110010",
+            "D+A": "000010", "D+M": "000010",
+            "D-A": "010011", "D-M": "010011",
+            "A-D": "000111", "M-D": "000111",   
+            "D&A": "000000", "D&M": "000000",
+            "D|A": "010101", "D|M": "010101"
         } 
         A_BIT_ZERO = ["0", 
                       "1", 
                       "-1",
                       "D",
                       "A",
-                      "M",
                       "!D",
                       "!A",
-                      "!M",
                       "-D",
                       "-A",
                       "D+1",
                       "A+1",
-                      "M+1",
                       "D-1",
                       "A-1",
-                      "M-1",
                       "D+A",
                       "D-A",
                       "A-D",
@@ -129,11 +115,19 @@ class Code:
                      "D&M",
                      "D|M"
                      ]
-        a_bit_map = {
-            **{ k: "0" for k in A_BIT_ZERO}, 
-            **{ k: "1" for k in A_BIT_ONE}
-        }
-        comp_instruction = a_bit_map[comp_bits] + c_bits_map[comp_bits]
+        
+        if comp_bits not in A_BIT_ZERO and comp_bits not in A_BIT_ONE:
+            raise ValueError(f"Error with comp field: {comp_bits}. Field is not in A_BIT_ZERO or A_BIT_ONE.")
+        
+        if comp_bits in A_BIT_ZERO and comp_bits in A_BIT_ONE:
+            raise ValueError(f"Error with comp field: {comp_bits}. Field is in both A_BIT_ZERO and A_BIT_ONE.")
+        
+        if comp_bits in A_BIT_ZERO:
+            a_bit = "0"
+        else:
+            a_bit = "1"
+        
+        comp_instruction = a_bit + c_bits_map[comp_bits]
         return comp_instruction
 
     def jump(self, jump_bits: str) -> str:
@@ -188,10 +182,14 @@ class Code:
             "null": "000",
             "M": "001",
             "D": "010",
+            "MD": "011",
             "DM": "011",
             "A": "100",
             "AM": "101",
+            "MA": "101",
             "AD": "110",
+            "DA": "110",
             "AMD": "111"
         }
+        
         return dest_map.get(dest_bits)

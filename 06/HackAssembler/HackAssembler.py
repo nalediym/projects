@@ -152,7 +152,22 @@ class HackAssembler:
             elif self.parser.instructionType() == C_INSTRUCTION:
                 dest, comp, jump = self.parser.dest(), self.parser.comp(), self.parser.jump()
                 # binary_value = self.code.comp(comp) + self.code.dest(dest) + self.code.jump(jump)
-                binary_value = "111" + self.code.comp(comp) + self.code.dest(dest) + self.code.jump(jump)
+                if dest is None: 
+                    raise ValueError(f"Invalid dest field {dest} for instruction: {instruction}")
+                if comp is None:
+                    raise ValueError(f"Invalid comp field {comp} for instruction: {instruction}")
+                if jump is None:
+                    raise ValueError(f"Invalid jump field {jump} for instruction: {instruction}")
+                comp_binary = self.code.comp(comp)  
+                dest_binary = self.code.dest(dest)
+                jump_binary = self.code.jump(jump)
+                if len(comp_binary) != 7:
+                    raise ValueError(f"Invalid comp binary value {comp_binary} for instruction: {instruction}")
+                if dest_binary is None or len(dest_binary) != 3:
+                    raise ValueError(f"Invalid dest binary value {dest_binary} for instruction: {instruction}")
+                if len(jump_binary) != 3:
+                    raise ValueError(f"Invalid jump binary value {jump_binary} for instruction: {instruction}")
+                binary_value = "111" + comp_binary + dest_binary + jump_binary
             else:
                 raise ValueError(f"Invalid instruction type for instruction: {instruction}")
 
