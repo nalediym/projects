@@ -34,7 +34,21 @@ class Parser:
         if not os.path.exists(self.input_file):
             raise FileNotFoundError(f"File {self.input_file} does not exist")
         with open(self.input_file, "r") as file:
-            self.instructions = file.readlines()
+            # self.instructions = file.readlines()
+            for line in file.readlines():
+                # Remove leading/trailing whitespace
+                line = line.strip()
+                
+                # Skip lines that are only comments
+                if not line.startswith('//'):
+                    # Skip empty lines
+                    if line:
+                        self.instructions.append(line)
+                
+                # Remove inline comments
+                # if '//' in line:
+                #     line = line.split('//')[0].strip()
+                
 
         # TODO: use __enter__ and __exit__ to open and close the file and read the lines 
 
@@ -59,7 +73,7 @@ class Parser:
         self.current_instruction = self.instructions[self.current_instruction_index]
         self.current_instruction_index += 1
 
-    def instructionType(self):
+    def instructionType(self) -> str:
         """
         Returns the type of the current command:
         A_INSTRUCTION for @Xxx where Xxx is either a symbol or a decimal number
@@ -76,27 +90,31 @@ class Parser:
         elif self.current_instruction.startswith("(") and self.current_instruction.endswith(")"):
             return L_INSTRUCTION
         # 3. Check if the current command is a C_INSTRUCTION   
-        elif re.match(r"^[AMD]*=[01!-]*[AMD01!-]*;J[A-Z]*$", self.current_instruction):
+        elif '=' in self.current_instruction or ';' in self.current_instruction:
             return C_INSTRUCTION
         else:  
-            raise ValueError("Invalid instruction")
+            raise ValueError(f"Invalid instruction: {self.current_instruction}")
 
-    def symbol(self):
+    def symbol(self) -> str:
         """
         Returns the symbol or decimal Xxx of the current command @Xxx or (Xxx).
         Should be called only when command_type() is A_INSTRUCTION or L_INSTRUCTION.
 
         Returns:
             str: The symbol or decimal Xxx of the current command.
+
+        Examples:
+            @100 -> 100
+            (LOOP) -> LOOP
         """
         # 1. Check if the current command is an A_INSTRUCTION 
             # Return decimal Xxx of the current command   
         if self.instructionType() == A_INSTRUCTION:
-            pass
+            return self.current_instruction[1:]
         # 2. Check if the current command is an L_INSTRUCTION
             # Return the symbolof the current command
         elif self.instructionType() == L_INSTRUCTION:
-            pass    
+            return self.current_instruction[1:-1]
         else:
             raise ValueError(f"Invalid instruction type: {self.instructionType()}. Must be A_INSTRUCTION or L_INSTRUCTION") 
 
@@ -109,7 +127,7 @@ class Parser:
         """
         return "=" in self.current_instruction
         
-    def dest(self):
+    def dest(self) -> str:
         """
         Returns the dest mnemonic in the current C-INSTRUCTION (8 possibilities).
         Should be called only when command_type() is C_INSTRUCTION.
@@ -129,7 +147,7 @@ class Parser:
             raise ValueError(f"Invalid instruction type: {self.instructionType()}. Must be C_INSTRUCTION")
 
 
-    def comp(self):
+    def comp(self) -> str:
         """
         Returns the comp mnemonic in the current C-INSTRUCTION (28 possibilities).
         Should be called only when command_type() is C_INSTRUCTION.
@@ -162,7 +180,7 @@ class Parser:
         """
         return ";" in self.current_instruction
         
-    def jump(self):
+    def jump(self) -> str:
         """
         Returns the jump mnemonic in the current C-INSTRUCTION (8 possibilities).
         Should be called only when command_type() is C_INSTRUCTION.
@@ -175,7 +193,8 @@ class Parser:
         if self.instructionType() == C_INSTRUCTION:
             # 2. Return the jump mnemonic in the current C-INSTRUCTION
             if self._contains_jump_field():
-                return self.current_instruction.split(";")[1].strip()
+                jump_bits : str = self.current_instruction.split(";")[1].strip()
+                return jump_bits    
             else:
                 return "null"
         else:

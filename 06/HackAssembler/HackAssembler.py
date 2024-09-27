@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 
-from Parser import Parser
-from Code import Code
-from SymbolTable import SymbolTable
+from .Parser import Parser
+from .Code import Code
+from .SymbolTable import SymbolTable
 import os
 
 from typing import Callable
 
-def decimal_to_binary(num):
+def decimal_to_binary(num: int) -> str:
     return f'{num:016b}'
+
+A_INSTRUCTION = "A_INSTRUCTION" # e.g. @100 
+C_INSTRUCTION = "C_INSTRUCTION" # e.g. D=D+A
+L_INSTRUCTION = "L_INSTRUCTION" # e.g. (LOOP)
 
 class HackAssembler:
     """
@@ -27,24 +31,25 @@ class HackAssembler:
 
         # Construct a symbol table and add all the predefined symbols
         self.symbol_table = SymbolTable()
-
-        # Get the first instruction
-        self.parser.advance()
+        self.code = Code()
         if self.parser.current_instruction_index != 0:
             raise ValueError("Error Initializing Parser: Current instruction index is not 0. Must start at the beginning of the file")
 
+        # Get the first instruction
+        self.parser.advance()
+        
 
 
     def _validate_input_file(self):
         """
         Validate the input file
         """
-        if not os.path.isfile(self.input_file):
-            raise FileNotFoundError(f"File {self.input_file} not found")
-        if not self.input_file.endswith('.asm'):
+        if not os.path.isfile(self.parser.input_file):
+            raise FileNotFoundError(f"File {self.parser.input_file} not found")
+        if not self.parser.input_file.endswith('.asm'):
             raise ValueError("Invalid file extension. Please provide a .asm file.")
-        if not os.path.exists(self.input_file):
-            raise FileNotFoundError(f"File {self.input_file} not found")    
+        if not os.path.exists(self.parser.input_file):
+            raise FileNotFoundError(f"File {self.parser.input_file} not found")    
     def _validate_output_file(self):
         """
         Validate the output file
@@ -57,13 +62,12 @@ class HackAssembler:
         Reset the parser to the beginning of the file before generating binary code with second pass
         """
 
-        self.parser.current_instruction = ""
-        self.current_line_number = 0
-        self.parser.current_instruction_index = 0 
+        self.parser.current_instruction = "" # Reset the current instruction
+        self.parser.current_instruction_index = 0 # Reset the current instruction index
 
         # Check if the parser has more lines to process
         if not self.parser.hasMoreLines():
-            raise ValueError("Error Resetting Parser: No more lines to process")
+            raise ValueError("Error Resetting Parser: No more lines to process. Parser should have more lines to process.")
 
     def assemble(self):
         """
@@ -73,19 +77,30 @@ class HackAssembler:
         self.first_pass()
         self._reset_parser()
         self.second_pass()
-
     
-    def _sanitize_instructions(self) -> Callable[[str], str]:
-        """
-        Clean the instructions by removing comments and white spaces,
-        and removing any lines that are entirely comments.
-        Preserves the order of non-comment instructions.
-        """
-        # Define the lambda function
-        clean_and_filter = lambda instruction: instruction.strip() if instruction.strip() and not instruction.strip().startswith("//") else ""
+    # def _sanitize_instructions(self):
+    #     sanitized = []
+
+    #     for instruction in self.parser.instructions:
+    #         # Remove leading/trailing whitespace
+    #         instruction = instruction.strip()
+            
+    #         # Skip empty lines
+    #         if not instruction:
+    #             continue
+            
+    #         # Skip lines that are only comments
+    #         if instruction.startswith('//'):
+    #             continue
+    #         # Remove inline comments
+    #         if '//' in instruction:
+    #             instruction = instruction.split('//')[0].strip()
+            
+    #         # Add non-empty, non-comment instructions to the sanitized list
+    #         if instruction:
+    #             sanitized.append(instruction)
         
-        # Use filter with the lambda function
-        return clean_and_filter
+    #     self.parser.instructions = sanitized
 
     def first_pass(self):
         """
@@ -95,18 +110,15 @@ class HackAssembler:
         focusing only on (label) declarations.
         Adds the found labels to the symbol table
         """
-
-        self.parser.instructions = list(filter(bool, map(self._sanitize_instructions(), self.parser.instructions)))
-
         # Iterate over the instructions and process each one
         line_num_counter = 0
-        for instruction in self.parser.instructions:
+        while self.parser.hasMoreLines():
             # Check the type of instruction
-            if instruction.instructionType() == Parser.L_INSTRUCTION:
+            if self.parser.instructionType() == L_INSTRUCTION:  
                 # It's a label declaration
-                label_symbol = instruction.symbol()
-                self.symbol_table.addEntry(label_symbol, line_num_counter)
-            line_num_counter += 1
+                label_symbol = self.parser.symbol()
+                self.symbol_table.addEntry(label_symbol, self.parser.current_instruction_index)
+            self.parser.advance()
 
     def second_pass(self):
         """
@@ -126,24 +138,39 @@ class HackAssembler:
         while self.parser.hasMoreLines():
             self.parser.advance()
             instruction = self.parser.current_instruction
-            if instruction.instructionType() == Parser.A_INSTRUCTION:
-                a_symbol = instruction.symbol()
+            if self.parser.instructionType() == A_INSTRUCTION:
+                a_symbol = self.parser.symbol()
                 if not self.symbol_table.contains(a_symbol):
-                    self.symbol_table.addEntry(a_symbol, self.parser.current_instruction_index)
-                address = self.symbol_table.getAddress(a_symbol) 
+                    self.symbol_table.addEntry(a_symbol, int(a_symbol))
+                address : int= self.symbol_table.getAddress(a_symbol) 
                 # Convert the address from decimal to binary
                 binary_value = decimal_to_binary(address)
-            elif instruction.instructionType() == Parser.C_INSTRUCTION:
-                dest, comp, jump = instruction.dest(), instruction.comp(), instruction.jump()
-                binary_value = Code.comp(comp) + Code.dest(dest) + Code.jump(jump)
+                if len(binary_value) != 16:
+                    raise ValueError(f"Invalid binary value {len(binary_value)} for A-instruction: {instruction}")
+                if binary_value[0] != "0":
+                    raise ValueError(f"Invalid binary value {binary_value[0]} for A-instruction: {instruction}")
+            elif self.parser.instructionType() == C_INSTRUCTION:
+                dest, comp, jump = self.parser.dest(), self.parser.comp(), self.parser.jump()
+                # binary_value = self.code.comp(comp) + self.code.dest(dest) + self.code.jump(jump)
+                binary_value = "111" + self.code.comp(comp) + self.code.dest(dest) + self.code.jump(jump)
             else:
-                raise ValueError(f"Invalid instruction type: {instruction.instructionType()}")
+                raise ValueError(f"Invalid instruction type for instruction: {instruction}")
 
+            if len(binary_value) != 16:
+                raise ValueError(f"Invalid binary value {len(binary_value)} for instruction: {instruction}")
             self.output_file_lines.append(binary_value)
+
+        self._validate_output_file()    
 
         with open(self.output_file_name, "w") as file:
             file.write("\n".join(self.output_file_lines))
-                
+    
+    def _validate_output_file(self):
+        """
+        Validate the output file has instructions to output 
+        """
+        if self.output_file_lines == []:
+            raise ValueError(f"No instructions to output: {self.output_file_lines}")
 
 if __name__ == "__main__":
     import sys
