@@ -1,8 +1,10 @@
-#!/usr/bin/env python3
+#!/opt/homebrew/bin/python3 
+
 
 from .Parser import Parser
 from .Code import Code
 from .SymbolTable import SymbolTable
+
 import os
 
 from typing import Callable
@@ -35,10 +37,11 @@ class HackAssembler:
         if self.parser.current_instruction_index != 0:
             raise ValueError("Error Initializing Parser: Current instruction index is not 0. Must start at the beginning of the file")
 
-        # Get the first instruction
-        self.parser.advance()
-        
-
+        # Check if there are any instructions before advancing
+        if self.parser.hasMoreLines():
+            self.parser.advance()
+        else:
+            raise ValueError("Error: Input file is empty or contains no valid instructions")
 
     def _validate_input_file(self):
         """
@@ -117,7 +120,9 @@ class HackAssembler:
             if self.parser.instructionType() == L_INSTRUCTION:  
                 # It's a label declaration
                 label_symbol = self.parser.symbol()
-                self.symbol_table.addEntry(label_symbol, self.parser.current_instruction_index)
+                if not self.symbol_table.contains(label_symbol):
+                    self.symbol_table.addEntry(label_symbol, line_num_counter)
+            line_num_counter += 1
             self.parser.advance()
 
     def second_pass(self):
@@ -141,6 +146,7 @@ class HackAssembler:
             if self.parser.instructionType() == A_INSTRUCTION:
                 a_symbol = self.parser.symbol()
                 if not self.symbol_table.contains(a_symbol):
+                    
                     self.symbol_table.addEntry(a_symbol, int(a_symbol))
                 address : int= self.symbol_table.getAddress(a_symbol) 
                 # Convert the address from decimal to binary
@@ -168,6 +174,8 @@ class HackAssembler:
                 if len(jump_binary) != 3:
                     raise ValueError(f"Invalid jump binary value {jump_binary} for instruction: {instruction}")
                 binary_value = "111" + comp_binary + dest_binary + jump_binary
+            elif self.parser.instructionType() == L_INSTRUCTION:
+                pass # Do nothing with L_INSTRUCTION it will be processed in the first pass
             else:
                 raise ValueError(f"Invalid instruction type for instruction: {instruction}")
 

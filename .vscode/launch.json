@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+    //     {
+    //         "name": "Python Debugger: HackAssembler Unit Test Module",
+    //         "type": "debugpy",
+    //         "request": "launch",
+    //         "module": "HackAssembler",
+    //         "cwd": "/Users/naledikekana/Documents/Projects/projects/",
+    //         "console": "integratedTerminal",
+    //         "args": ["test_HackAssembler"],
+    //     },
+    //     {
+    //         "name": "Python Debugger: HackAssembler Unit Test",
+    //         "type": "debugpy",
+    //         "request": "launch",
+    //         "program": "/Users/naledikekana/Documents/Projects/projects/06/unittests/test_HackAssembler.py",
+    //         "console": "integratedTerminal"
+    //     },
+        {
+            // python3 -m 06.unittests.test_HackAssembler 
+            "name": "HackAssembler Unit Test Module",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "06.unittests.test_HackAssembler",
+            "console": "integratedTerminal"
+        }
+    ]
+}

@@ -43,13 +43,12 @@ class Parser:
                 
                 # Skip lines that are only comments
                 if not line.startswith('//'):
-                    # Skip empty lines
+                    # Remove inline comments
+                    if '//' in line:
+                        line = line.split('//')[0].strip()
+                    # Remove empty lines
                     if line:
                         self.instructions.append(line)
-                
-                # Remove inline comments
-                # if '//' in line:
-                #     line = line.split('//')[0].strip()
 
         # if self.manual_run:
         #     self.instructions = ["AM=M-1"]
