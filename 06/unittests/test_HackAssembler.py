@@ -1,4 +1,9 @@
-#!/opt/homebrew/bin/python3 
+#!/.venv/bin/python3    
+
+# Remove or comment out these lines
+# import sys
+# import os
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from unittest import TestCase, main 
 import os
@@ -13,7 +18,7 @@ class TestHackAssembler(TestCase):
         pass
         
     @patch('os.path', return_value=MagicMock())
-    def test_first_pass_add(self, mock_path):
+    def test_first_pass_max(self, mock_path):
         """
         Test the first pass of the HackAssembler.
         
@@ -49,31 +54,24 @@ class TestHackAssembler(TestCase):
             "   @INFINITE_LOOP",
             "   0;JMP            // infinite loop"
         ]
-        expected_instructions = [
-            "@0",
-            "D=M",
-            "@1",
-            "D=D-M",
-            "@10",
-            "D;JGT",
-            "@1",
-            "D=M",
-            "@12",
-            "0;JMP",
-            "@0",
-            "D=M",
-            "@2",
-            "M=D",
-            "@14",
-            "0;JMP"
-        ]
+        expected_symbol_table = {
+            'OUTPUT_FIRST': 10,
+            'OUTPUT_D': 12,
+            'INFINITE_LOOP': 14
+        }
 
-        pass 
+        with patch('builtins.open', mock_open(read_data='\n'.join(instructions))) as mock_file:
+            self.hack_assembler = HackAssembler("Max.asm")
+            self.hack_assembler.first_pass()
+            
+            # Check if the symbol table contains the expected labels
+            for label, address in expected_symbol_table.items():
+                self.assertTrue(self.hack_assembler.symbol_table.contains(label))
+                self.assertEqual(self.hack_assembler.symbol_table.getAddress(label), address)
     
-    #FIXME: This test is not working    
+
     @patch('os.path', return_value=MagicMock())
-    @patch('builtins.open', new_callable=mock_open)
-    def test_first_pass_dummy(self, mock_file, mock_path):
+    def test_first_pass_dummy(self, mock_path):
         instructions = [
             "@2",
             "D=A",
@@ -82,16 +80,62 @@ class TestHackAssembler(TestCase):
             "@0",
             "M=D"
         ]
-        mock_file.return_value.read.return_value = "\n".join(instructions)
-        
-        self.hack_assembler = HackAssembler("Add.asm")
-        self.hack_assembler.first_pass()
+        with patch('builtins.open', mock_open(read_data=str('\n'.join(instructions)))) as mock_file:
+            self.hack_assembler = HackAssembler("Add.asm")
+            self.assertEqual(self.hack_assembler.parser.instructions, instructions)
+            self.hack_assembler.first_pass()
+            self.assertEqual(self.hack_assembler.parser.instructions, instructions)
+
+
+        # self.hack_assembler.first_pass()
         
         # Add your assertions here
 
             
-    def test_second_pass(self):
-        pass
+    @patch('os.path', return_value=MagicMock())
+    def test_second_pass(self, mock_path):
+        """
+        Test the second pass of the HackAssembler.
+        """
+        instructions = [
+            "@R0",   
+            "D=M"
+        ]
+        expected_binary_instructions = [
+            "0000000000000000",
+            "1111110000010000"           
+        ]
+        with patch('builtins.open', mock_open(read_data='\n'.join(instructions))) as mock_file:
+            self.hack_assembler = HackAssembler("Rect.asm")
+            self.hack_assembler.first_pass()
+            self.hack_assembler._reset_parser()
+            self.hack_assembler.second_pass()
+
+            # Check if output files have expected binary instructions 
+            self.assertEqual(self.hack_assembler.output_file_lines, expected_binary_instructions)
+
+        # Check if the symbol table contains the expected labels
+        expected_symbol_table = {
+            'R0': 0,
+            'R1': 1,
+            'R2': 2,
+            'R3': 3,
+            'R4': 4,
+            'R5': 5,
+            'R6': 6,
+            'R7': 7,
+            'R8': 8,
+            'R9': 9,
+            'R10': 10,
+            'R11': 11,
+            'R12': 12,
+            'R13': 13, 
+            'R14': 14,
+            'R15': 15
+        }
+        for symbol, address in expected_symbol_table.items():
+            self.assertTrue(self.hack_assembler.symbol_table.contains(symbol))
+            self.assertEqual(self.hack_assembler.symbol_table.getAddress(symbol), address)
 
     
     @patch('os.path', return_value=MagicMock())

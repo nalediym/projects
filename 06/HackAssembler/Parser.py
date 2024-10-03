@@ -202,4 +202,10 @@ class Parser:
                 return "null"
         else:
             raise ValueError(f"Invalid instruction type: {self.instructionType()}. Must be C_INSTRUCTION")
-    
+
+    def reset(self):
+        """
+        Reset the parser to the beginning of the file
+        """
+        self.current_instruction_index = -1
+        self.current_instruction = ""

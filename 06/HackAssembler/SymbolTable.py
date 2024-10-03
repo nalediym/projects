@@ -18,6 +18,8 @@ class SymbolTable:
             "R1": 1,
             "R2": 2,
             "R3": 3,
+            "SCREEN": 16384,
+            "KBD": 24576,   
             **{f"R{i}": i for i in range(total_registers)}, 
         }
 

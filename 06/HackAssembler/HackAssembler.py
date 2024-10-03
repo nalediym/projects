@@ -1,11 +1,21 @@
-#!/opt/homebrew/bin/python3 
+#!/.venv/bin/python3    
 
 
+import logging
 from .Parser import Parser
 from .Code import Code
 from .SymbolTable import SymbolTable
 
+# Configure logging
 import os
+
+log_dir = os.path.dirname(os.path.abspath(__file__)) # ie. 06/HackAssembler 
+log_file = os.path.join(log_dir, f"{__file__}.log")
+
+logging.basicConfig(filename=log_file, level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 from typing import Callable
 
@@ -22,6 +32,7 @@ class HackAssembler:
     Constructs a symbol table, and adds to it all the predefined symbols
     """
     def __init__(self, input_file: os.PathLike):
+        logger.debug(f"Initializing HackAssembler with input file: {input_file}")
         self.output_file_name : str = input_file.replace('.asm', '.hack')
         self.output_file : os.PathLike = None
         self.output_file_lines : list[str] = []
@@ -113,18 +124,19 @@ class HackAssembler:
         focusing only on (label) declarations.
         Adds the found labels to the symbol table
         """
-        # Iterate over the instructions and process each one
         line_num_counter = 0
         while self.parser.hasMoreLines():
-            # Check the type of instruction
-            if self.parser.instructionType() == L_INSTRUCTION:  
+            if self.parser.instructionType() == L_INSTRUCTION:
                 # It's a label declaration
                 label_symbol = self.parser.symbol()
                 if not self.symbol_table.contains(label_symbol):
                     self.symbol_table.addEntry(label_symbol, line_num_counter)
-            line_num_counter += 1
+            else:
+                # Only increment the counter for non-label instructions
+                line_num_counter += 1
             self.parser.advance()
 
+    
     def second_pass(self):
         """
         Second pass of the assembly
@@ -140,14 +152,22 @@ class HackAssembler:
             Assembles the binary values into a string of sixteen 0’s and 1’s
             Writes the string to the output file.
         """
+        
+        address_counter = 16
         while self.parser.hasMoreLines():
             self.parser.advance()
             instruction = self.parser.current_instruction
             if self.parser.instructionType() == A_INSTRUCTION:
                 a_symbol = self.parser.symbol()
+                #FIXME: 
                 if not self.symbol_table.contains(a_symbol):
-                    
-                    self.symbol_table.addEntry(a_symbol, int(a_symbol))
+                    if a_symbol.isdigit():
+                        symbol_address = int(a_symbol)
+                    else:
+                        symbol_address = address_counter  
+                        address_counter += 1
+
+                    self.symbol_table.addEntry(a_symbol, symbol_address)
                 address : int= self.symbol_table.getAddress(a_symbol) 
                 # Convert the address from decimal to binary
                 binary_value = decimal_to_binary(address)
@@ -157,7 +177,6 @@ class HackAssembler:
                     raise ValueError(f"Invalid binary value {binary_value[0]} for A-instruction: {instruction}")
             elif self.parser.instructionType() == C_INSTRUCTION:
                 dest, comp, jump = self.parser.dest(), self.parser.comp(), self.parser.jump()
-                # binary_value = self.code.comp(comp) + self.code.dest(dest) + self.code.jump(jump)
                 if dest is None: 
                     raise ValueError(f"Invalid dest field {dest} for instruction: {instruction}")
                 if comp is None:
@@ -175,7 +194,7 @@ class HackAssembler:
                     raise ValueError(f"Invalid jump binary value {jump_binary} for instruction: {instruction}")
                 binary_value = "111" + comp_binary + dest_binary + jump_binary
             elif self.parser.instructionType() == L_INSTRUCTION:
-                pass # Do nothing with L_INSTRUCTION it will be processed in the first pass
+                continue # Do nothing with L_INSTRUCTION it will be processed in the first pass
             else:
                 raise ValueError(f"Invalid instruction type for instruction: {instruction}")
 
