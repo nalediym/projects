@@ -2,6 +2,12 @@ import os
 from Parser import Parser
 from CodeWriter import CodeWriter
 
+import logging
+
+logging.basicConfig(level=logging.DEBUG, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
+logger = logging.getLogger(__name__)
+
 class VMTranslator:
     def __init__(self, input_file):
         """
@@ -20,7 +26,7 @@ class VMTranslator:
         self.parser: Parser = Parser(self.input_file)
         # Constructs a CodeWriter to handle the output file
         self.output_file: os.PathLike = self.input_file.replace('.vm', '.asm')
-        # self.code_writer: CodeWriter = CodeWriter(self.output_file)
+        self.code_writer: CodeWriter = CodeWriter(self.output_file)
         # self.output_file_lines: list[str] = []
 
     def translate(self):
@@ -30,7 +36,7 @@ class VMTranslator:
 
         """
         # Construct a Parser to handle the input file
-        self.parser = Parser(self.input_file)
+        # self.parser = Parser(self.input_file)
         
         # Construct a CodeWriter to handle the output file
         self.output_file: os.PathLike = self.input_file.replace('.vm', '.asm')

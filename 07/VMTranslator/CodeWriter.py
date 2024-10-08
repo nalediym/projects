@@ -2,6 +2,25 @@ import os
 from dataclasses import dataclass
 from types import MethodType
 
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+def debug_decorator(func: MethodType):
+    def wrapper(*args, **kwargs):
+        if 'add' in str(args):
+            logger.debug(f"Args: {args}")
+            logger.debug(f"Kwargs: {kwargs}")
+            logger.debug(f"Entering {func.__name__}")
+            result: str = func(*args, **kwargs)
+            logger.debug(f"Exiting {func.__name__}")
+            logger.debug(f"Result: {result}")
+            return result
+        else:
+            return func(*args, **kwargs)
+    return wrapper
+
 
 STANDARD_SYMBOL_VM_MAP = {
     'SP' : 0, 
@@ -44,7 +63,7 @@ class CodeWriter:
         self.output_file_name = os.path.basename(output_file)
         self.output_file = output_file
         self.output = None
-    
+        self.true_label_counter = 0
     def _write_push(self, segment: str, index: int) -> str:
         """
         Write the assembly code for a push command.
@@ -214,6 +233,9 @@ class CodeWriter:
         # Implement the logic to write assembly code for arithmetic operations
         assembly_code = ""
         arithmetic_variables_assembly_code = self._get_arithmetic_variables_from_stack(command)
+        
+        logger.debug(f"Arithmetic command: {command}")
+        self.true_label_counter += 1
         if command == 'add':
             arithmatic_assembly_code = self._add()
         elif command == 'sub':
@@ -236,7 +258,10 @@ class CodeWriter:
             raise ValueError(f"Invalid command: {command}. Must be add, sub, neg, eq, gt, lt, and, or, not")
         
         push_result_assembly_code = self._push_result_to_stack()
-        assembly_code = arithmetic_variables_assembly_code + arithmatic_assembly_code + push_result_assembly_code
+        assembly_code = \
+            arithmetic_variables_assembly_code \
+            + arithmatic_assembly_code \
+            + push_result_assembly_code
         return assembly_code
     
     def _push_result_to_stack(self) -> str:
@@ -283,7 +308,6 @@ class CodeWriter:
                 // get x from stack
                 @SP
                 M=M-1
-                A=M
                 D=M
                 @x
                 M=D
@@ -294,12 +318,11 @@ class CodeWriter:
                 // get y from stack
                 @SP
                 M=M-1
-                A=M
                 D=M
                 @y
                 M=D
         """
-    
+
     def _add(self) -> str:
         """
         Add two values.
@@ -357,14 +380,14 @@ class CodeWriter:
                 D=M
                 @y
                 D=D-M
-                @true
+                @true{self.true_label_counter}
                 D;JEQ // if x == y
-                @false
+                @false{self.true_label_counter}
                 D;JNE // if x != y
-                (true)
+                (true{self.true_label_counter})
                 @result
-                M=1
-                (false)
+                M=-1
+                (false{self.true_label_counter})
                 @result
                 M=0
         """
@@ -379,14 +402,14 @@ class CodeWriter:
                 D=M 
                 @y
                 D=D-M
-                @true
+                @true{self.true_label_counter}
                 D;JGT // if x > y 
-                @false
+                @false{self.true_label_counter}
                 D;JLE // if x <= y
-                (true)
+                (true{self.true_label_counter})
                 @result
-                M=1
-                (false)
+                M=-1
+                (false{self.true_label_counter})
                 @result
                 M=0
         """
@@ -402,14 +425,14 @@ class CodeWriter:
                 D=M
                 @y
                 D=D-M
-                @true
+                @true{self.true_label_counter}
                 D;JLT // if x < y
-                @false
+                @false{self.true_label_counter}
                 D;JGE // if x >= y
-                (true)
+                (true{self.true_label_counter})
                 @result
-                M=1
-                (false)
+                M=-1
+                (false{self.true_label_counter})
                 @result
                 M=0
         """
@@ -425,14 +448,14 @@ class CodeWriter:
                 D=M
                 @y
                 D=D&M
-                @true
+                @true{self.true_label_counter}
                 D;JGE // if x & y >= 1 // if 1 & 1  
-                @false
+                @false{self.true_label_counter}
                 D;JLT // if x & y == 0 // if 0 & 0
-                (true)
+                (true{self.true_label_counter})
                 @result
-                M=1
-                (false)
+                M=-1
+                (false{self.true_label_counter})
                 @result
                 M=0
         """
@@ -448,14 +471,14 @@ class CodeWriter:
                 D=M 
                 @y
                 D=D|M
-                @true
+                @true{self.true_label_counter}
                 D;JGE // if x | y >= 1 // if 1 | 1
-                @false
+                @false{self.true_label_counter}
                 D;JLT // if x | y == 0 // if 0 | 0
-                (true)
+                (true{self.true_label_counter})
                 @result
-                M=1
-                (false)
+                M=-1
+                (false{self.true_label_counter})
                 @result
                 M=0
         """
@@ -469,14 +492,14 @@ class CodeWriter:
         return f"""
                 @x
                 D=M 
-                @true
+                @true{self.true_label_counter}
                 D;JEQ // if x == 0
-                @false
+                @false{self.true_label_counter}
                 D;JNE // if x != 0
-                (true)
+                (true{self.true_label_counter})
                 @result
-                M=1
-                (false)
+                M=-1
+                (false{self.true_label_counter})
                 @result
                 M=0
         """
@@ -493,14 +516,14 @@ class CodeWriter:
                 D=M
                 @y
                 D=D-M
-                @true
+                @true{self.true_label_counter}
                 D;JGT // if x > y
-                @false
+                @false{self.true_label_counter}
                 D;JLE // if x <= y
-                (true)
+                (true{self.true_label_counter})
                 @result
-                M=1
-                (false)
+                M=-1
+                (false{self.true_label_counter})
                 @result
                 M=0
         """
@@ -530,4 +553,5 @@ class CodeWriter:
         """
         if self.output:
             self.output.close()
+
 

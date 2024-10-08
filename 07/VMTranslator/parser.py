@@ -2,7 +2,8 @@ import os
 
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
 logger = logging.getLogger(__name__)
 
 COMMAND_TYPE_MAP: dict[str, str] = {
@@ -47,10 +48,12 @@ class Parser:
                 line = line.strip()
 
                 if not line.startswith('//'):
-                    # Remove comments
+                    # Remove inline comments
                     line = line.split('//')[0].strip()
                     if line:
                         self.lines.append(line)
+
+        logger.debug(f"Lines: {self.lines}")
 
         if self.has_more_lines():
             self.current_instruction = self.lines[self.current_line_number]
@@ -73,17 +76,20 @@ class Parser:
         Returns: boolean
         """
 
-        return self.current_line_number < len(self.lines) - 1
+        return self.current_line_number < len(self.lines)
 
     def advance(self) -> None:
         """
         Reads the next command from the input and makes it the current command.
         Should be called only if has_more_lines() is true.
         """
-        if self.has_more_lines():
-            self.current_line_number += 1
+        self.current_line_number += 1
+        if self.current_line_number < len(self.lines):
+            logger.debug(f"Current line number: {self.current_line_number}")
             self.current_instruction = self.lines[self.current_line_number]
-            logger.debug(f"Current instruction: {self.current_instruction}")
+        else:
+            logger.debug("No more lines because current line number is at the end of the file")
+            
 
     def commandType(self) -> str:
         """
@@ -91,6 +97,7 @@ class Parser:
         Returns: "C_ARITHMETIC" | "C_PUSH" | "C_POP" | "C_LABEL" | "C_GOTO" | "C_IF" | "C_FUNCTION" | "C_RETURN" | "C_CALL"
         rtype: str
         """
+        logger.debug(f"Current instruction: {self.current_instruction}")
         command = self.current_instruction.split()[0] # eg: push, pop, add, sub, etc.
         command_type = COMMAND_TYPE_MAP.get(command, None)
         if command_type is None:
