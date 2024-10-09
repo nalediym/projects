@@ -27,28 +27,35 @@
                 M=M+1 // SP++
             
 
-                // get x from stack
+                // get x 
+                
                 @SP
                 M=M-1
-                A=M
+            
+                // set x
+                @SP
                 D=M
-                @x
-                M=D
-        
-                // get y from stack
+                // get y
+                
                 @SP
                 M=M-1
-                A=M
-                D=M
-                @y
-                M=D
-        
-                @x
-                D=M
-                @y
+            
+                // add x and y
+                @SP
                 D=D+M
+                // set result
                 @result
                 M=D
+                // push result to stack
+                @result
+                D=M
+                @SP
+                A=M
+                M=D
+                
+                @SP
+                M=M+1
+            
         
                 @result
                 D=M

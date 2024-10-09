@@ -22,6 +22,17 @@ def debug_decorator(func: MethodType):
     return wrapper
 
 
+psuedo_code = {
+            'SP--': f"""
+                @SP
+                M=M-1
+            """, 
+            'SP++': f"""
+                @SP
+                M=M+1
+            """,
+        }
+
 STANDARD_SYMBOL_VM_MAP = {
     'SP' : 0, 
     'LCL': 1, 
@@ -232,7 +243,8 @@ class CodeWriter:
         """
         # Implement the logic to write assembly code for arithmetic operations
         assembly_code = ""
-        arithmetic_variables_assembly_code = self._get_arithmetic_variables_from_stack(command)
+        arithmetic_variables_assembly_code = ""
+        # arithmetic_variables_assembly_code = self._get_arithmetic_variables_from_stack(command)
         
         logger.debug(f"Arithmetic command: {command}")
         self.true_label_counter += 1
@@ -332,13 +344,28 @@ class CodeWriter:
         Returns:
             str: The assembly code for the given command.
         """
+        
         return f"""
-                @x
+                // get x 
+                {psuedo_code['SP--']}
+                // set x
+                @SP
                 D=M
-                @y
+                // get y
+                {psuedo_code['SP--']}
+                // add x and y
+                @SP
                 D=D+M
+                // set result
                 @result
                 M=D
+                // push result to stack
+                @result
+                D=M
+                @SP
+                A=M
+                M=D
+                {psuedo_code['SP++']}
         """
     
     def _sub(self) -> str:
@@ -376,9 +403,14 @@ class CodeWriter:
             str: The assembly code for the given command.
         """
         return f"""
-                @x
+                // get x
+                {psuedo_code['SP--']}
+                // set x
+                @SP
                 D=M
-                @y
+                // get y
+                {psuedo_code['SP--']}
+                // compare x and y
                 D=D-M
                 @true{self.true_label_counter}
                 D;JEQ // if x == y
@@ -390,6 +422,13 @@ class CodeWriter:
                 (false{self.true_label_counter})
                 @result
                 M=0
+                // push result to stack
+                @result
+                D=M
+                @SP
+                A=M
+                M=D
+                {psuedo_code['SP++']}
         """
     def _gt(self) -> str:
         """
